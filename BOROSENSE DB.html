@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>BAROSENSE Live Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0b1220;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #111c31;
+            padding: 20px 30px;
+            border-bottom: 1px solid #263552;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title h1 {
+            font-size: 28px;
+            color: #4dd0e1;
+        }
+
+        .title p {
+            color: #9eabc2;
+            margin-top: 5px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #17233a;
+            padding: 10px 16px;
+            border-radius: 20px;
+        }
+
+        #statusDot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        #statusText {
+            color: #ddd;
+        }
+
+        main {
+            padding: 25px;
+            max-width: 1500px;
+            margin: auto;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #connectBtn {
+            background: #06b6d4;
+            color: white;
+        }
+
+        #disconnectBtn {
+            background: #ef4444;
+            color: white;
+        }
+
+        #clearBtn {
+            background: #334155;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #111c31;
+            border: 1px solid #263552;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card-title {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .value {
+            font-size: 30px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .unit {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-left: 5px;
+        }
+
+        .charts {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .chart-box {
+            background: #111c31;
+            border: 1px solid #263552;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .chart-box h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #4dd0e1;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        .info {
+            margin-top: 20px;
+            background: #111c31;
+            border: 1px solid #263552;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .info h2 {
+            color: #4dd0e1;
+            margin-bottom: 12px;
+        }
+
+        .info p {
+            color: #aab6c8;
+            line-height: 1.7;
+        }
+
+        #log {
+            margin-top: 15px;
+            background: #050914;
+            border-radius: 8px;
+            padding: 12px;
+            height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 900px) {
+            .cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="title">
+        <h1>BAROSENSE</h1>
+        <p>Live Micro-Barometer & Infrasound Monitoring System</p>
+    </div>
+
+    <div class="status">
+        <span id="statusDot"></span>
+        <span id="statusText">Device Disconnected</span>
+    </div>
+</header>
+
+<main>
+
+    <div class="controls">
+        <button id="connectBtn">🔌 Connect ESP32</button>
+        <button id="disconnectBtn">Disconnect</button>
+        <button id="clearBtn">Clear Graph</button>
+    </div>
+
+    <!-- DATA CARDS -->
+
+    <section class="cards">
+
+        <div class="card">
+            <div class="card-title">Pressure</div>
+            <div>
+                <span class="value" id="pressure">0.000</span>
+                <span class="unit">Pa</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Temperature</div>
+            <div>
+                <span class="value" id="temperature">0.00</span>
+                <span class="unit">°C</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Dominant Frequency</div>
+            <div>
+                <span class="value" id="frequency">0.00</span>
+                <span class="unit">Hz</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Samples Received</div>
+            <div>
+                <span class="value" id="samples">0</span>
+                <span class="unit">samples</span>
+            </div>
+        </div>
+
+    </section>
+
+
+    <!-- CHARTS -->
+
+    <section class="charts">
+
+        <div class="chart-box">
+
+            <h2>Live Pressure Waveform</h2>
+
+            <div class="chart-container">
+                <canvas id="waveformChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <div class="chart-box">
+
+            <h2>Frequency Spectrum / FFT</h2>
+
+            <div class="chart-container">
+                <canvas id="fftChart"></canvas>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="info">
+
+        <h2>Device Information</h2>
+
+        <p>
+            Connection:
+            <strong id="connectionInfo">Not connected</strong>
+        </p>
+
+        <p>
+            Sample Rate:
+            <strong id="sampleRate">0 Hz</strong>
+        </p>
+
+        <p>
+            Detection Range:
+            <strong>0.01 – 20 Hz</strong>
+        </p>
+
+        <div id="log">
+            Waiting for ESP32...
+        </div>
+
+    </section>
+
+</main>
+
+
+<script>
+
+let port = null;
+let reader = null;
+let keepReading = false;
+
+const MAX_SAMPLES = 1000;
+
+let pressureData = [];
+let timeData = [];
+
+let sampleCounter = 0;
+
+
+/* --------------------------------------------------
+   ELEMENTS
+-------------------------------------------------- */
+
+const pressureElement =
+    document.getElementById("pressure");
+
+const temperatureElement =
+    document.getElementById("temperature");
+
+const frequencyElement =
+    document.getElementById("frequency");
+
+const samplesElement =
+    document.getElementById("samples");
+
+const sampleRateElement =
+    document.getElementById("sampleRate");
+
+const statusText =
+    document.getElementById("statusText");
+
+const statusDot =
+    document.getElementById("statusDot");
+
+const connectionInfo =
+    document.getElementById("connectionInfo");
+
+const logElement =
+    document.getElementById("log");
+
+
+/* --------------------------------------------------
+   LOGGING
+-------------------------------------------------- */
+
+function log(message) {
+
+    const time =
+        new Date().toLocaleTimeString();
+
+    logElement.innerHTML +=
+        `<br>[${time}] ${message}`;
+
+    logElement.scrollTop =
+        logElement.scrollHeight;
+}
+
+
+/* --------------------------------------------------
+   STATUS
+-------------------------------------------------- */
+
+function setConnected(connected) {
+
+    if (connected) {
+
+        statusDot.style.background =
+            "#22c55e";
+
+        statusText.innerText =
+            "ESP32 Connected";
+
+        connectionInfo.innerText =
+            "Connected";
+
+    } else {
+
+        statusDot.style.background =
+            "#ef4444";
+
+        statusText.innerText =
+            "Device Disconnected";
+
+        connectionInfo.innerText =
+            "Disconnected";
+    }
+}
+
+
+/* --------------------------------------------------
+   WAVEFORM CHART
+-------------------------------------------------- */
+
+const waveformChart =
+    new Chart(
+        document.getElementById("waveformChart"),
+        {
+            type: "line",
+
+            data: {
+                labels: [],
+                datasets: [{
+                    label: "Pressure",
+
+                    data: [],
+
+                    borderWidth: 2,
+
+                    pointRadius: 0,
+
+                    tension: 0.1
+                }]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                animation: false,
+
+                scales: {
+
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Time / Sample"
+                        }
+                    },
+
+                    y: {
+                        title: {
+                            display: true,
+                            text: "Pressure (Pa)"
+                        }
+                    }
+                }
+            }
+        }
+    );
+
+
+/* --------------------------------------------------
+   FFT CHART
+-------------------------------------------------- */
+
+const fftChart =
+    new Chart(
+        document.getElementById("fftChart"),
+        {
+            type: "line",
+
+            data: {
+
+                labels: [],
+
+                datasets: [{
+                    label: "Amplitude",
+
+                    data: [],
+
+                    borderWidth: 2,
+
+                    pointRadius: 0,
+
+                    tension: 0
+                }]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                animation: false,
+
+                scales: {
+
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Frequency (Hz)"
+                        },
+
+                        min: 0,
+                        max: 20
+                    },
+
+                    y: {
+                        title: {
+                            display: true,
+                            text: "Amplitude"
+                        }
+                    }
+                }
+            }
+        }
+    );
+
+
+/* --------------------------------------------------
+   UPDATE WAVEFORM
+-------------------------------------------------- */
+
+function updateWaveform() {
+
+    waveformChart.data.labels =
+        timeData;
+
+    waveformChart.data.datasets[0].data =
+        pressureData;
+
+    waveformChart.update("none");
+}
+
+
+/* --------------------------------------------------
+   FFT
+-------------------------------------------------- */
+
+function calculateFFT(signal, sampleRate) {
+
+    const N = signal.length;
+
+    if (N < 16)
+        return null;
+
+    /*
+       Remove DC component
+    */
+
+    let mean =
+        signal.reduce(
+            (a, b) => a + b,
+            0
+        ) / N;
+
+    let real = new Array(N);
+    let imag = new Array(N);
+
+    for (let i = 0; i < N; i++) {
+
+        /*
+           Hann window
+        */
+
+        let window =
+            0.5 *
+            (
+                1 -
+                Math.cos(
+                    2 * Math.PI * i / (N - 1)
+                )
+            );
+
+        real[i] =
+            (signal[i] - mean) *
+            window;
+
+        imag[i] = 0;
+    }
+
+
+    /*
+       Bit reversal
+    */
+
+    let j = 0;
+
+    for (let i = 0; i < N; i++) {
+
+        if (i < j) {
+
+            let temp =
+                real[i];
+
+            real[i] =
+                real[j];
+
+            real[j] =
+                temp;
+        }
+
+        let bit =
+            N >> 1;
+
+        while (j & bit) {
+
+            j ^= bit;
+
+            bit >>= 1;
+        }
+
+        j ^= bit;
+    }
+
+
+    /*
+       FFT
+    */
+
+    for (
+        let length = 2;
+        length <= N;
+        length <<= 1
+    ) {
+
+        let angle =
+            -2 * Math.PI / length;
+
+        let wReal =
+            Math.cos(angle);
+
+        let wImag =
+            Math.sin(angle);
+
+        for (
+            let i = 0;
+            i < N;
+            i += length
+        ) {
+
+            let currentReal = 1;
+            let currentImag = 0;
+
+            for (
+                let k = 0;
+                k < length / 2;
+                k++
+            ) {
+
+                let evenIndex =
+                    i + k;
+
+                let oddIndex =
+                    i + k + length / 2;
+
+                let oddReal =
+                    real[oddIndex];
+
+                let oddImag =
+                    imag[oddIndex];
+
+                let tempReal =
+                    currentReal *
+                    oddReal -
+                    currentImag *
+                    oddImag;
+
+                let tempImag =
+                    currentReal *
+                    oddImag +
+                    currentImag *
+                    oddReal;
+
+                real[oddIndex] =
+                    real[evenIndex] -
+                    tempReal;
+
+                imag[oddIndex] =
+                    imag[evenIndex] -
+                    tempImag;
+
+                real[evenIndex] +=
+                    tempReal;
+
+                imag[evenIndex] +=
+                    tempImag;
+
+                let newReal =
+                    currentReal *
+                    wReal -
+                    currentImag *
+                    wImag;
+
+                currentImag =
+                    currentReal *
+                    wImag +
+                    currentImag *
+                    wReal;
+
+                currentReal =
+                    newReal;
+            }
+        }
+    }
+
+
+    /*
+       Magnitude
+    */
+
+    let frequencies = [];
+    let amplitudes = [];
+
+    let maxAmplitude = 0;
+    let dominantFrequency = 0;
+
+    for (
+        let i = 1;
+        i < N / 2;
+        i++
+    ) {
+
+        let frequency =
+            i * sampleRate / N;
+
+        if (frequency > 20)
+            break;
+
+        let amplitude =
+            Math.sqrt(
+                real[i] * real[i] +
+                imag[i] * imag[i]
+            ) / N;
+
+        frequencies.push(
+            frequency.toFixed(2)
+        );
+
+        amplitudes.push(
+            amplitude
+        );
+
+        if (amplitude > maxAmplitude) {
+
+            maxAmplitude =
+                amplitude;
+
+            dominantFrequency =
+                frequency;
+        }
+    }
+
+    return {
+        frequencies,
+        amplitudes,
+        dominantFrequency
+    };
+}
+
+
+/* --------------------------------------------------
+   UPDATE FFT
+-------------------------------------------------- */
+
+function updateFFT(sampleRate) {
+
+    /*
+       FFT requires power-of-two samples.
+       1024 samples are used here.
+    */
+
+    const N = 1024;
+
+    if (pressureData.length < N)
+        return;
+
+    const signal =
+        pressureData.slice(-N);
+
+    const result =
+        calculateFFT(
+            signal,
+            sampleRate
+        );
+
+    if (!result)
+        return;
+
+    frequencyElement.innerText =
+        result.dominantFrequency.toFixed(2);
+
+    fftChart.data.labels =
+        result.frequencies;
+
+    fftChart.data.datasets[0].data =
+        result.amplitudes;
+
+    fftChart.update("none");
+}
+
+
+/* --------------------------------------------------
+   PROCESS ESP32 DATA
+-------------------------------------------------- */
+
+let sampleRate = 100;
+
+function processData(data) {
+
+    /*
+       Expected ESP32 format:
+
+       {
+          "pressure": 0.123,
+          "temperature": 27.4,
+          "sampleRate": 100
+       }
+    */
+
+
+    if (
+        typeof data.pressure !==
+        "number"
+    ) {
+        return;
+    }
+
+
+    let pressure =
+        Number(data.pressure);
+
+    let temperature =
+        Number(data.temperature || 0);
+
+
+    /*
+       Update cards
+    */
+
+    pressureElement.innerText =
+        pressure.toFixed(4);
+
+    temperatureElement.innerText =
+        temperature.toFixed(2);
+
+
+    /*
+       Sample rate
+    */
+
+    if (data.sampleRate) {
+
+        sampleRate =
+            Number(data.sampleRate);
+
+        sampleRateElement.innerText =
+            sampleRate + " Hz";
+    }
+
+
+    /*
+       Store samples
+    */
+
+    pressureData.push(
+        pressure
+    );
+
+    timeData.push(
+        sampleCounter++
+    );
+
+
+    /*
+       Limit graph memory
+    */
+
+    if (
+        pressureData.length >
+        MAX_SAMPLES
+    ) {
+
+        pressureData.shift();
+        timeData.shift();
+    }
+
+
+    samplesElement.innerText =
+        sampleCounter;
+
+
+    /*
+       Update graph
+    */
+
+    updateWaveform();
+
+
+    /*
+       FFT
+    */
+
+    updateFFT(sampleRate);
+}
+
+
+/* --------------------------------------------------
+   CONNECT ESP32
+-------------------------------------------------- */
+
+async function connectDevice() {
+
+    if (!("serial" in navigator)) {
+
+        alert(
+            "Web Serial is not supported. " +
+            "Please use Google Chrome or Microsoft Edge."
+        );
+
+        return;
+    }
+
+
+    try {
+
+        /*
+           Ask user to select ESP32
+        */
+
+        port =
+            await navigator.serial.requestPort();
+
+
+        /*
+           Open serial connection
+        */
+
+        await port.open({
+            baudRate: 115200
+        });
+
+
+        setConnected(true);
+
+        log(
+            "ESP32 serial connection opened."
+        );
+
+
+        keepReading = true;
+
+
+        /*
+           Read serial data
+        */
+
+        const decoder =
+            new TextDecoderStream();
+
+        port.readable.pipeTo(
+            decoder.writable
+        );
+
+
+        reader =
+            decoder.readable.getReader();
+
+
+        let buffer = "";
+
+
+        while (keepReading) {
+
+            const {
+                value,
+                done
+            } =
+                await reader.read();
+
+
+            if (done)
+                break;
+
+
+            buffer += value;
+
+
+            /*
+               ESP32 sends JSON
+               line by line
+            */
+
+            let lines =
+                buffer.split("\n");
+
+
+            buffer =
+                lines.pop();
+
+
+            for (let line of lines) {
+
+                line =
+                    line.trim();
+
+
+                if (!line)
+                    continue;
+
+
+                try {
+
+                    const data =
+                        JSON.parse(line);
+
+
+                    processData(data);
+
+                }
+
+                catch (error) {
+
+                    log(
+                        "Invalid data: " +
+                        line
+                    );
+                }
+            }
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        log(
+            "Connection error: " +
+            error.message
+        );
+
+        setConnected(false);
+    }
+}
+
+
+/* --------------------------------------------------
+   DISCONNECT
+-------------------------------------------------- */
+
+async function disconnectDevice() {
+
+    keepReading = false;
+
+
+    try {
+
+        if (reader) {
+
+            await reader.cancel();
+
+            reader.releaseLock();
+
+            reader = null;
+        }
+
+        if (port) {
+
+            await port.close();
+
+            port = null;
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+    }
+
+
+    setConnected(false);
+
+    log(
+        "ESP32 disconnected."
+    );
+}
+
+
+/* --------------------------------------------------
+   CLEAR
+-------------------------------------------------- */
+
+function clearGraph() {
+
+    pressureData = [];
+
+    timeData = [];
+
+    sampleCounter = 0;
+
+    pressureElement.innerText =
+        "0.000";
+
+    temperatureElement.innerText =
+        "0.00";
+
+    frequencyElement.innerText =
+        "0.00";
+
+    samplesElement.innerText =
+        "0";
+
+    waveformChart.data.labels = [];
+
+    waveformChart.data.datasets[0].data = [];
+
+    waveformChart.update();
+
+
+    fftChart.data.labels = [];
+
+    fftChart.data.datasets[0].data = [];
+
+    fftChart.update();
+
+
+    log(
+        "Dashboard data cleared."
+    );
+}
+
+
+/* --------------------------------------------------
+   BUTTONS
+-------------------------------------------------- */
+
+document
+    .getElementById("connectBtn")
+    .addEventListener(
+        "click",
+        connectDevice
+    );
+
+
+document
+    .getElementById("disconnectBtn")
+    .addEventListener(
+        "click",
+        disconnectDevice
+    );
+
+
+document
+    .getElementById("clearBtn")
+    .addEventListener(
+        "click",
+        clearGraph
+    );
+
+
+/* --------------------------------------------------
+   START
+-------------------------------------------------- */
+
+log(
+    "Dashboard ready. Connect your ESP32."
+);
+
+</script>
+
+</body>
+</html>
